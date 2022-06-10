@@ -6,7 +6,13 @@ const {
 
 const getAll = async (req, res, next) => {
   try {
-    const contacts = await Contact.find();
+    const { _id } = req.user;
+    const { page = 1, limit = 20, favorite = true } = req.query;
+    const skip = (page - 1) * limit;
+    const contacts = await Contact.find({ owner: _id, favorite }, "", {
+      skip,
+      limit: Number(limit),
+    }).populate("owner", "_id name email");
     res.status(200).json({ code: 200, data: contacts });
   } catch (error) {
     next(error);
@@ -32,12 +38,12 @@ const getById = async (req, res, next) => {
 const add = async (req, res, next) => {
   try {
     const { error } = schemaJoi.validate(req.body);
-
     if (error) {
       error.status = 400;
       throw error;
     }
-    const contact = await Contact.create(req.body);
+    const { _id } = req.user;
+    const contact = await Contact.create({ ...req.body, owner: _id });
 
     if (!contact) {
       const error = new Error("Missing required name field");
