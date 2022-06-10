@@ -1,4 +1,5 @@
 const express = require("express");
+const auth = require("../../middlewares/auth");
 const {
   getAll,
   getById,
@@ -10,11 +11,11 @@ const {
 
 const router = express.Router();
 
-router.get("/", getAll);
+router.get("/", auth, getAll);
 
 router.get("/:contactId", getById);
 
-router.post("/", add);
+router.post("/", auth, add);
 
 router.put("/:contactId", updateById);
 
