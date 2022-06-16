@@ -1,5 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
+const path = require("path");
+const fs = require("fs/promises");
 const {
   schemaJoiRegister,
   schemaJoiLogin,
@@ -24,17 +27,23 @@ const register = async (req, res, next) => {
       throw error;
     }
 
+    const avatarURL = gravatar.url(email);
     const hashPassword = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
     const newUser = await User.create({
       name,
       email,
       password: hashPassword,
       subscription,
+      avatarURL,
     });
     res.status(201).json({
       code: 201,
       data: {
-        user: { email: newUser.email, subscription: newUser.subscription },
+        user: {
+          email: newUser.email,
+          subscription: newUser.subscription,
+          avatarURL: newUser.avatarURL,
+        },
       },
     });
   } catch (error) {
@@ -131,10 +140,45 @@ const updateStatusUser = async (req, res, next) => {
   }
 };
 
+const updateAvatar = async (req, res, next) => {
+  const { path: tempUpload, originalname } = req.file;
+  const { _id } = req.user;
+  const imageName = `${_id}_${originalname}`;
+  try {
+    const resultUpload = path.join(
+      __dirname,
+      "../",
+      "public",
+      "avatars",
+      imageName
+    );
+    await fs.rename(tempUpload, resultUpload);
+
+    const avatarURL = path.join("public", "avatars", imageName);
+
+    await User.findByIdAndUpdate(
+      req.user._id,
+      { avatarURL },
+      {
+        new: true,
+      }
+    );
+
+    res.status(200).json({
+      code: 200,
+      data: { avatarURL },
+    });
+  } catch (error) {
+    await fs.unlink(tempUpload);
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   getCurrent,
   logout,
   updateStatusUser,
+  updateAvatar,
 };
