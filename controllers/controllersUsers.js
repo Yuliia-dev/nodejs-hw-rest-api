@@ -9,6 +9,7 @@ const {
   schemaJoiForSubscription,
   User,
 } = require("../models/user");
+const sharp = require("sharp");
 const { SECRET_KEY } = process.env;
 
 const register = async (req, res, next) => {
@@ -27,7 +28,7 @@ const register = async (req, res, next) => {
       throw error;
     }
 
-    const avatarURL = gravatar.url(email);
+    const avatarURL = gravatar.url(email, {}, true);
     const hashPassword = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
     const newUser = await User.create({
       name,
@@ -152,7 +153,7 @@ const updateAvatar = async (req, res, next) => {
       "avatars",
       imageName
     );
-    await fs.rename(tempUpload, resultUpload);
+    await sharp(tempUpload).resize(250).toFile(resultUpload);
 
     const avatarURL = path.join("public", "avatars", imageName);
 
