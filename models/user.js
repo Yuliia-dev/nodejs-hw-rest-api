@@ -38,6 +38,10 @@ const schemaUser = Schema(
       enum: ["starter", "pro", "business"],
       default: "starter",
     },
+    avatarURL: {
+      type: String,
+      required: [true, "Add avatar for user"],
+    },
     token: {
       type: String,
       default: null,
