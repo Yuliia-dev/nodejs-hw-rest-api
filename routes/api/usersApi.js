@@ -6,6 +6,8 @@ const {
   getCurrent,
   updateStatusUser,
   updateAvatar,
+  verifyEmail,
+  resendEmail,
 } = require("../../controllers/controllersUsers");
 const auth = require("../../middlewares/auth");
 const upload = require("../../middlewares/upload");
@@ -18,6 +20,10 @@ router.post("/login", login);
 router.get("/current", auth, getCurrent);
 
 router.post("/logout", auth, logout);
+
+router.get("/verify/:verificationToken", verifyEmail);
+
+router.post("/verify", resendEmail);
 
 router.patch("/:userId/subscription", updateStatusUser);
 

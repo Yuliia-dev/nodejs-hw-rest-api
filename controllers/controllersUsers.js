@@ -7,9 +7,11 @@ const {
   schemaJoiRegister,
   schemaJoiLogin,
   schemaJoiForSubscription,
+  schemaJoiForVerifyEmail,
   User,
 } = require("../models/user");
 const sharp = require("sharp");
+const sendEmail = require("../helpers/sendEmail");
 const { SECRET_KEY } = process.env;
 
 const register = async (req, res, next) => {
@@ -37,6 +39,14 @@ const register = async (req, res, next) => {
       subscription,
       avatarURL,
     });
+
+    const mail = {
+      to: email,
+      subject: "Confirm your email",
+      html: `<a target="_blank" href="http://localhost:3030/api/v1/users/verify/${newUser.verificationToken}">Link for confirm your email</a>`,
+    };
+    await sendEmail(mail);
+
     res.status(201).json({
       code: 201,
       data: {
@@ -66,6 +76,11 @@ const login = async (req, res, next) => {
 
     if (!user || !passCompare) {
       const error = new Error("Email or password is wrong");
+      error.status = 401;
+      throw error;
+    }
+    if (!user.verify) {
+      const error = new Error("Your email not verify");
       error.status = 401;
       throw error;
     }
@@ -175,6 +190,65 @@ const updateAvatar = async (req, res, next) => {
   }
 };
 
+const verifyEmail = async (req, res, next) => {
+  const { verificationToken } = req.params;
+  try {
+    const user = await User.findOne({ verificationToken });
+
+    if (!user) {
+      const error = new Error("User not Found");
+      error.status = 404;
+      throw error;
+    }
+    await User.findByIdAndUpdate(user._id, {
+      verify: true,
+      verificationToken: null,
+    });
+    res.status(200).json({
+      code: 200,
+      massage: "Verification successful",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resendEmail = async (req, res, next) => {
+  try {
+    const { error } = schemaJoiForVerifyEmail.validate(req.body);
+    if (error) {
+      error.status = 400;
+      throw error;
+    }
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      const error = new Error("User not Found");
+      error.status = 404;
+      throw error;
+    }
+
+    if (user.verify) {
+      const error = new Error("Verification has already been passed");
+      error.status = 400;
+      throw error;
+    }
+
+    const mail = {
+      to: email,
+      subject: "Confirm your email",
+      html: `<a target="_blank" href="http://localhost:3030/api/v1/users/verify/${user.verificationToken}">Link for confirm your email</a>`,
+    };
+    await sendEmail(mail);
+    return res.status(200).json({
+      code: 200,
+      message: "Verification email sent",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -182,4 +256,6 @@ module.exports = {
   logout,
   updateStatusUser,
   updateAvatar,
+  verifyEmail,
+  resendEmail,
 };
