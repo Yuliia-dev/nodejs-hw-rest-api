@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { Schema, model } = require("mongoose");
+const { v4 } = require("uuid");
 
 const schemaJoiRegister = Joi.object({
   name: Joi.string().required(),
@@ -16,6 +17,10 @@ const schemaJoiLogin = Joi.object({
 
 const schemaJoiForSubscription = Joi.object({
   subscription: Joi.string().valid("starter", "pro", "business").required(),
+});
+
+const schemaJoiForVerifyEmail = Joi.object({
+  email: Joi.string().required(),
 });
 
 const schemaUser = Schema(
@@ -46,6 +51,15 @@ const schemaUser = Schema(
       type: String,
       default: null,
     },
+
+    verify: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: {
+      type: String,
+      default: v4(),
+    },
   },
   { versionKey: false, timestamps: true }
 );
@@ -56,5 +70,6 @@ module.exports = {
   schemaJoiRegister,
   schemaJoiLogin,
   schemaJoiForSubscription,
+  schemaJoiForVerifyEmail,
   User,
 };
